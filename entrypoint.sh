@@ -8,6 +8,14 @@ cat >> ${PG_CONFIG_DIR}/userlist.txt << EOF
 "$DB_USER" "$DB_MD5_PASSWORD"
 EOF
 
+# If CLIENT_TLS_* or SERVER_TLS_* are set, copy the contents into a file
+[ ! -z "${CLIENT_TLS_KEY_BASE64}" ] && CLIENT_TLS_KEY_FILE=/etc/ssl/private/pgbouncer.key && echo "${CLIENT_TLS_KEY_BASE64}" | base64 -d > ${CLIENT_TLS_KEY_FILE}
+[ ! -z "${CLIENT_TLS_CERT_BASE64}" ] && CLIENT_TLS_CERT_FILE=/etc/ssl/certs/pgbouncer.pem && echo "${CLIENT_TLS_CERT_BASE64}" | base64 -d > ${CLIENT_TLS_CERT_FILE}
+[ ! -z "${CLIENT_TLS_CA_BASE64}" ] && CLIENT_TLS_CA_FILE=/etc/ssl/certs/pgbouncer-ca.pem && echo "${CLIENT_TLS_CA_BASE64}" | base64 -d > ${CLIENT_TLS_CA_FILE}
+[ ! -z "${SERVER_TLS_KEY_BASE64}" ] && SERVER_TLS_KEY_FILE=/etc/ssl/private/postgres.key && echo "${SERVER_TLS_KEY_BASE64}" | base64 -d > ${SERVER_TLS_KEY_FILE}
+[ ! -z "${SERVER_TLS_CERT_BASE64}" ] && SERVER_TLS_CERT_FILE=/etc/ssl/certs/postgres.pem && echo "${SERVER_TLS_CERT_BASE64}" | base64 -d > ${SERVER_TLS_CERT_FILE}
+[ ! -z "${SERVER_TLS_CA_BASE64}" ] && SERVER_TLS_CA_FILE=/etc/ssl/certs/postgres-ca.pem && echo "${SERVER_TLS_CA_BASE64}" | base64 -d > ${SERVER_TLS_CA_BASE64}
+
 if [ ! -f ${PG_CONFIG_DIR}/pgbouncer.ini ]; then
   echo "create pgbouncer config in ${PG_CONFIG_DIR}"
 
