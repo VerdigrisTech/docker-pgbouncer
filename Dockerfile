@@ -1,11 +1,9 @@
-FROM alpine:3 AS builder
-
-ARG PANDOC_VERSION=2.10
+FROM alpine:3.18.4 AS builder
+ARG VERSION=1.21.0
 
 RUN apk --update add \
     coreutils \
     curl \
-    git \
     build-base \
     automake \
     libtool \
@@ -16,36 +14,46 @@ RUN apk --update add \
     c-ares-dev
 
 WORKDIR /tmp
-RUN curl -sSL https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz | tar xvz
-RUN cp -r pandoc-${PANDOC_VERSION}/* /usr/
+RUN curl -sSL https://pgbouncer.github.io/downloads/files/${VERSION}/pgbouncer-${VERSION}.tar.gz | tar xvz
 
-RUN git clone --recurse-submodules https://github.com/pgbouncer/pgbouncer.git
-WORKDIR /tmp/pgbouncer
+WORKDIR /tmp/pgbouncer-${VERSION}
+
 RUN ./autogen.sh
 RUN ./configure --prefix=/usr/local
 RUN make
 RUN make install
 
-FROM alpine:3
+FROM alpine:3.18.4
 
 LABEL maintainer="Verdigris Technologies <infrastructure@verdigris.co>"
 
-ENV PG_USER=postgres
-ENV PG_LOG_DIR=/var/log/pgbouncer
-ENV PG_CONFIG_DIR=/etc/pgbouncer
+ARG PGBOUNCER_USER=pgbouncer
+ARG PGBOUNCER_GROUP=pgbouncer
+ARG PGBOUNCER_UID=1001
+ARG PGBOUNCER_GID=1001
+ARG PGBOUNCER_LOG_DIR=/var/log/pgbouncer
+ARG PGBOUNCER_CONFIG_DIR=/etc/pgbouncer
 
 COPY --from=builder /usr/local/bin/pgbouncer /usr/local/bin/pgbouncer
 
-RUN apk --update add c-ares libevent
+RUN \
+  # Ensure busybox is upgraded to latest version for security reasons
+  apk add -U --no-cache --upgrade busybox \
+  # PgBouncer library dependencies
+  && apk add -U --no-cache c-ares dumb-init libevent
 
-RUN mkdir -p $PG_CONFIG_DIR $PG_LOG_DIR
-RUN chmod -R 755 $PG_LOG_DIR
-RUN adduser -D ${PG_USER}
-RUN chown -R $PG_USER:$PG_USER $PG_LOG_DIR
+RUN mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR
+RUN chmod -R 755 $PGBOUNCER_LOG_DIR
 
-ADD entrypoint.sh ./
-RUN chmod +x ./entrypoint.sh
+RUN addgroup -g ${PGBOUNCER_GID} ${PGBOUNCER_GROUP} \
+  && adduser -D -u ${PGBOUNCER_UID} -G ${PGBOUNCER_GROUP} ${PGBOUNCER_USER}
 
-EXPOSE 6432
+RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_CONFIG_DIR
+RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_LOG_DIR
 
-ENTRYPOINT ["./entrypoint.sh"]
+USER ${PGBOUNCER_UID}:${PGBOUNCER_GID}
+
+COPY default-pgbouncer.ini ${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["pgbouncer", "${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini"]
