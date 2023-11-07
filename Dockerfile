@@ -40,7 +40,7 @@ RUN \
   # Ensure busybox is upgraded to latest version for security reasons
   apk add -U --no-cache --upgrade busybox \
   # PgBouncer library dependencies
-  && apk add -U --no-cache c-ares dumb-init libevent
+  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client
 
 RUN mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR
 RUN chmod -R 755 $PGBOUNCER_LOG_DIR
