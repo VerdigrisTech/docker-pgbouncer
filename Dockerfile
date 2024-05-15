@@ -55,5 +55,5 @@ USER ${PGBOUNCER_UID}:${PGBOUNCER_GID}
 
 COPY default-pgbouncer.ini ${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--"]
 CMD ["pgbouncer", "${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini"]
