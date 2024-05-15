@@ -1,4 +1,4 @@
-FROM alpine:3.18.4 AS builder
+FROM alpine:3.19.1 AS builder
 ARG VERSION=1.21.0
 
 RUN apk --update add \
@@ -23,7 +23,7 @@ RUN ./configure --prefix=/usr/local
 RUN make
 RUN make install
 
-FROM alpine:3.18.4
+FROM alpine:3.19.1
 
 LABEL maintainer="Verdigris Technologies <infrastructure@verdigris.co>"
 
