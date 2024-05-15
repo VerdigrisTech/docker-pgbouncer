@@ -1,0 +1,46 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.6.0
+
+jobs:
+  build:
+    executor: docker/docker
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: false
+      - docker/check:
+          docker-username: DOCKER_USERNAME
+          docker-password: DOCKER_PASSWORD
+      - run:
+          name: Find the latest release version and save to environment variables
+          command: |
+            export LATEST_RELEASE_VERSION=$(curl -s https://api.github.com/repos/pgbouncer/pgbouncer/releases/latest | jq -r '.tag_name | sub("pgbouncer_"; "") | sub("_"; "."; "g")')
+            echo "LATEST_RELEASE_VERSION=$LATEST_RELEASE_VERSION" >> $BASH_ENV
+      - docker/build:
+          extra_build_args: "--build-arg VERSION=$LATEST_RELEASE_VERSION"
+          image: verdigristech/pgbouncer
+          tag: ${LATEST_RELEASE_VERSION}-alpine
+      - docker/push:
+          image: verdigristech/pgbouncer
+          tag: ${LATEST_RELEASE_VERSION}-alpine
+
+workflows:
+  version: 2
+  nightly:
+    triggers:
+      - schedule:
+          # Run every day at 3:00 AM UTC
+          cron: "0 3 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build:
+          context: dockerhub
+  on-push:
+    jobs:
+      - build:
+          context: dockerhub
