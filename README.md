@@ -1,5 +1,7 @@
 # docker-pgbouncer
 
+[![Known Vulnerabilities](https://snyk.io/test/github/verdigristech/docker-pgbouncer/badge.svg)][snyk]
+
 PgBouncer container based on Alpine Linux
 
 ## Specifying PgBouncer version
@@ -11,3 +13,5 @@ with PgBouncer 1.21.0, you can run the following command:
 ```bash
 docker build --build-arg VERSION=1.21.0 -t verdigristech/pgbouncer:1.21.0 .
 ```
+
+[snyk]: https://snyk.io/test/github/verdigristech/docker-pgbouncer
