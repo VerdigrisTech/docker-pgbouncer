@@ -28,7 +28,16 @@ jobs:
           tag: ${LATEST_RELEASE_VERSION}-alpine
       - when:
           condition:
-            equal: [true, << parameters.publish >>]
+            equal: [<< parameters.publish >>, false]
+          steps:
+            - run:
+                name: Save the image as an artifact
+                command: docker save verdigristech/pgbouncer:${LATEST_RELEASE_VERSION}-alpine | gzip > pgbouncer-${LATEST_RELEASE_VERSION}-alpine.tar.gz
+            - store_artifacts:
+                path: pgbouncer-${LATEST_RELEASE_VERSION}-alpine.tar.gz
+      - when:
+          condition:
+            equal: [<< parameters.publish >>, true]
           steps:
             - docker/push:
                 image: verdigristech/pgbouncer
