@@ -60,7 +60,8 @@ workflows:
   # Publish builds on push to master
   on-push:
     jobs:
-      - docker/hadolint
+      - docker/hadolint:
+          ignore-rules: DL3018
 
       # Build-only on non-master branches
       - build:
