@@ -5,6 +5,10 @@ orbs:
 
 jobs:
   build:
+    parameters:
+      publish:
+        type: boolean
+        default: false
     executor: docker/docker
     steps:
       - checkout
@@ -22,12 +26,18 @@ jobs:
           extra_build_args: "--build-arg VERSION=$LATEST_RELEASE_VERSION"
           image: verdigristech/pgbouncer
           tag: ${LATEST_RELEASE_VERSION}-alpine
-      - docker/push:
-          image: verdigristech/pgbouncer
-          tag: ${LATEST_RELEASE_VERSION}-alpine
+      - when:
+          condition:
+            equal: [true, << parameters.publish >>]
+          steps:
+            - docker/push:
+                image: verdigristech/pgbouncer
+                tag: ${LATEST_RELEASE_VERSION}-alpine
 
 workflows:
   version: 2
+
+  # Nightly publish builds
   nightly:
     triggers:
       - schedule:
@@ -40,7 +50,26 @@ workflows:
     jobs:
       - build:
           context: dockerhub
+          parameters:
+            publish: true
+
+  # Publish builds on push to master
   on-push:
     jobs:
+      # Build-only on non-master branches
       - build:
+          publish: false
           context: dockerhub
+          filters:
+            branches:
+              ignore: master
+
+      # Build and publish on master branch
+      - build:
+          name: publish
+          publish: true
+          context: dockerhub
+          filters:
+            branches:
+              only:
+                - master
