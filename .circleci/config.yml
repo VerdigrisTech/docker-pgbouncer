@@ -33,6 +33,10 @@ jobs:
             - docker/push:
                 image: verdigristech/pgbouncer
                 tag: ${LATEST_RELEASE_VERSION}-alpine
+            - docker/update-description:
+                docker-username: DOCKER_USERNAME
+                docker-password: DOCKER_PASSWORD
+                image: verdigristech/pgbouncer
 
 workflows:
   version: 2
