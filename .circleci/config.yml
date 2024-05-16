@@ -60,20 +60,27 @@ workflows:
   # Publish builds on push to master
   on-push:
     jobs:
+      - docker/hadolint
+
       # Build-only on non-master branches
       - build:
           name: build
           publish: false
           context: dockerhub
+          requires:
+            - docker/hadolint
           filters:
             branches:
               ignore: master
+
 
       # Build and publish on master branch
       - build:
           name: publish
           publish: true
           context: dockerhub
+          requires:
+            - docker/hadolint
           filters:
             branches:
               only:
