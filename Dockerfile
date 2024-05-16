@@ -41,16 +41,16 @@ RUN \
   # Ensure busybox is upgraded to latest version for security reasons
   apk add -U --no-cache --upgrade busybox \
   # PgBouncer library dependencies
-  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client
-
-RUN mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR
-RUN chmod -R 755 $PGBOUNCER_LOG_DIR
-
-RUN addgroup -g ${PGBOUNCER_GID} ${PGBOUNCER_GROUP} \
-  && adduser -D -u ${PGBOUNCER_UID} -G ${PGBOUNCER_GROUP} ${PGBOUNCER_USER}
-
-RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_CONFIG_DIR
-RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_LOG_DIR
+  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client \
+  # Create config and log directories
+  && mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR \
+  && chmod -R 755 $PGBOUNCER_LOG_DIR \
+  # Create pgbouncer user and group
+  && addgroup -g ${PGBOUNCER_GID} ${PGBOUNCER_GROUP} \
+  && adduser -D -u ${PGBOUNCER_UID} -G ${PGBOUNCER_GROUP} ${PGBOUNCER_USER} \
+  # Update ownership of config and log directories
+  && chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_CONFIG_DIR \
+  && chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_LOG_DIR
 
 USER ${PGBOUNCER_UID}:${PGBOUNCER_GID}
 
