@@ -1,6 +1,7 @@
 FROM alpine:3.19.1 AS builder
 ARG VERSION=1.21.0
 
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN apk --update add \
     coreutils \
     curl \
