@@ -50,8 +50,7 @@ workflows:
     jobs:
       - build:
           context: dockerhub
-          parameters:
-            publish: true
+          publish: true
 
   # Publish builds on push to master
   on-push:
