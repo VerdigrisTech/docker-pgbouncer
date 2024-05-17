@@ -40,8 +40,11 @@ COPY --from=builder /usr/local/bin/pgbouncer /usr/local/bin/pgbouncer
 RUN \
   # Ensure busybox is upgraded to latest version for security reasons
   apk add -U --no-cache --upgrade busybox \
-  # PgBouncer library dependencies
-  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client \
+  && apk add -U --no-cache \
+    # PgBouncer library dependencies
+    c-ares dumb-init libevent postgresql15-client \
+    # Filesystem monitoring tools
+    inotify-tools procps-ng \
   # Create config and log directories
   && mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR \
   && chmod -R 755 $PGBOUNCER_LOG_DIR \
