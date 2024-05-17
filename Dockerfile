@@ -2,7 +2,7 @@ FROM alpine:3.19.1 AS builder
 ARG VERSION=1.21.0
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
-RUN apk --update add \
+RUN apk --no-cache --update add \
     coreutils \
     curl \
     build-base \
@@ -19,10 +19,10 @@ RUN curl -sSL https://pgbouncer.github.io/downloads/files/${VERSION}/pgbouncer-$
 
 WORKDIR /tmp/pgbouncer-${VERSION}
 
-RUN ./autogen.sh
-RUN ./configure --prefix=/usr/local
-RUN make
-RUN make install
+RUN ./autogen.sh \
+  && ./configure --prefix=/usr/local \
+  && make \
+  && make install
 
 FROM alpine:3.19.1
 
