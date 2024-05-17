@@ -1,0 +1,99 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.6.0
+
+jobs:
+  build:
+    parameters:
+      publish:
+        type: boolean
+        default: false
+    executor: docker/docker
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: false
+      - docker/check:
+          docker-username: DOCKER_USERNAME
+          docker-password: DOCKER_PASSWORD
+      - run:
+          name: Find the latest release version and save to environment variables
+          command: |
+            export LATEST_RELEASE_VERSION=$(curl -s https://api.github.com/repos/pgbouncer/pgbouncer/releases/latest | jq -r '.tag_name | sub("pgbouncer_"; "") | sub("_"; "."; "g")')
+            echo "LATEST_RELEASE_VERSION=$LATEST_RELEASE_VERSION" >> $BASH_ENV
+      - docker/build:
+          extra_build_args: "--build-arg VERSION=$LATEST_RELEASE_VERSION"
+          image: verdigristech/pgbouncer
+          tag: ${LATEST_RELEASE_VERSION}-alpine
+      - when:
+          condition:
+            equal: [<< parameters.publish >>, false]
+          steps:
+            - run:
+                name: Save the image as an artifact
+                command: |
+                  mkdir -p output
+                  docker save verdigristech/pgbouncer:${LATEST_RELEASE_VERSION}-alpine | gzip > output/pgbouncer-${LATEST_RELEASE_VERSION}-alpine.tar.gz
+            - store_artifacts:
+                path: output
+      - when:
+          condition:
+            equal: [<< parameters.publish >>, true]
+          steps:
+            - docker/push:
+                image: verdigristech/pgbouncer
+                tag: ${LATEST_RELEASE_VERSION}-alpine
+            - docker/update-description:
+                docker-username: DOCKER_USERNAME
+                docker-password: DOCKER_PASSWORD
+                image: verdigristech/pgbouncer
+
+workflows:
+  version: 2
+
+  # Nightly publish builds
+  nightly:
+    triggers:
+      - schedule:
+          # Run every day at 3:00 AM UTC
+          cron: "0 3 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build:
+          name: nightly-build
+          context: dockerhub
+          publish: true
+
+  # Publish builds on push to master
+  on-push:
+    jobs:
+      - docker/hadolint:
+          ignore-rules: DL3018
+
+      # Build-only on non-master branches
+      - build:
+          name: build
+          publish: false
+          context: dockerhub
+          requires:
+            - docker/hadolint
+          filters:
+            branches:
+              ignore: master
+
+
+      # Build and publish on master branch
+      - build:
+          name: publish
+          publish: true
+          context: dockerhub
+          requires:
+            - docker/hadolint
+          filters:
+            branches:
+              only:
+                - master

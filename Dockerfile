@@ -1,7 +1,8 @@
-FROM alpine:3.18.4 AS builder
+FROM alpine:3.19.1 AS builder
 ARG VERSION=1.21.0
 
-RUN apk --update add \
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+RUN apk --no-cache --update add \
     coreutils \
     curl \
     build-base \
@@ -18,12 +19,12 @@ RUN curl -sSL https://pgbouncer.github.io/downloads/files/${VERSION}/pgbouncer-$
 
 WORKDIR /tmp/pgbouncer-${VERSION}
 
-RUN ./autogen.sh
-RUN ./configure --prefix=/usr/local
-RUN make
-RUN make install
+RUN ./autogen.sh \
+  && ./configure --prefix=/usr/local \
+  && make \
+  && make install
 
-FROM alpine:3.18.4
+FROM alpine:3.19.1
 
 LABEL maintainer="Verdigris Technologies <infrastructure@verdigris.co>"
 
@@ -40,20 +41,21 @@ RUN \
   # Ensure busybox is upgraded to latest version for security reasons
   apk add -U --no-cache --upgrade busybox \
   # PgBouncer library dependencies
-  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client
-
-RUN mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR
-RUN chmod -R 755 $PGBOUNCER_LOG_DIR
-
-RUN addgroup -g ${PGBOUNCER_GID} ${PGBOUNCER_GROUP} \
-  && adduser -D -u ${PGBOUNCER_UID} -G ${PGBOUNCER_GROUP} ${PGBOUNCER_USER}
-
-RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_CONFIG_DIR
-RUN chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_LOG_DIR
+  && apk add -U --no-cache c-ares dumb-init libevent postgresql15-client \
+  # Create config and log directories
+  && mkdir -p $PGBOUNCER_CONFIG_DIR $PGBOUNCER_LOG_DIR \
+  && chmod -R 755 $PGBOUNCER_LOG_DIR \
+  # Create pgbouncer user and group
+  && addgroup -g ${PGBOUNCER_GID} ${PGBOUNCER_GROUP} \
+  && adduser -D -u ${PGBOUNCER_UID} -G ${PGBOUNCER_GROUP} ${PGBOUNCER_USER} \
+  # Update ownership of config and log directories
+  && chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_CONFIG_DIR \
+  && chown -R $PGBOUNCER_USER:$PGBOUNCER_GROUP $PGBOUNCER_LOG_DIR
 
 USER ${PGBOUNCER_UID}:${PGBOUNCER_GID}
 
 COPY default-pgbouncer.ini ${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+# Rewrite SIGTERM to SIGINT to allow graceful shutdown in PgBouncer
+ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--"]
 CMD ["pgbouncer", "${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini"]
