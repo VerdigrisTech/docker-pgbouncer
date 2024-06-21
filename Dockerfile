@@ -1,4 +1,4 @@
-FROM alpine:3.19.1 AS builder
+FROM alpine:3.19 AS builder
 ARG VERSION=1.21.0
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
@@ -24,7 +24,7 @@ RUN ./autogen.sh \
   && make \
   && make install
 
-FROM alpine:3.19.1
+FROM alpine:3.19
 
 LABEL maintainer="Verdigris Technologies <infrastructure@verdigris.co>"
 
